@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exam 3 Practice: Clue by Clue</title>
+<style>
+  /* ===== Theme: five colors built from #134f5c, plus one feedback-only color =====
+     Deep Teal  #134f5c  headings, buttons, active square, links
+     Mist       #dce9ec  highlighted word, selected clue
+     Slate      #56636a  square borders, secondary text
+     Charcoal   #252c2f  body text, letters
+     Cloud      #f2f4f5  page background, panels
+     Brick      #a3392b  incorrect-answer feedback only (always paired with a slash or text)   */
+  :root {
+    --teal: #134f5c;
+    --mist: #dce9ec;
+    --slate: #56636a;
+    --charcoal: #252c2f;
+    --cloud: #f2f4f5;
+    --white: #ffffff;
+    --error: #a3392b;
+    --letter: #40494d; /* typed letters: a slightly lighter charcoal; revealed letters use Deep Teal */
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--cloud);
+    color: var(--charcoal);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  }
+  main { max-width: 1000px; margin: 0 auto; padding: 16px; }
+  h1 { color: var(--teal); font-size: 1.6rem; line-height: 1.25; margin: 0 0 .25rem; }
+  h2 { color: var(--teal); font-size: 1.25rem; margin: 1.25rem 0 .5rem; }
+  h3 { color: var(--teal); font-size: 1.1rem; margin: 1rem 0 .5rem; border-bottom: 2px solid var(--teal); padding-bottom: .25rem; }
+  .subtitle { margin: 0 0 .75rem; color: var(--slate); }
+  .newtab { margin: -.25rem 0 .75rem; }
+  a { color: var(--teal); font-weight: 600; text-underline-offset: 2px; }
+  a:focus-visible { outline: 3px solid var(--charcoal); outline-offset: 2px; }
+  .sr-only {
+    position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+
+  /* ----- Activity switcher ----- */
+  .activity-nav ul { list-style: none; margin: 0 0 1rem; padding: 0; display: flex; flex-wrap: wrap; gap: .5rem; }
+  .activity-nav a {
+    display: inline-block; padding: .4rem .9rem; border: 2px solid var(--teal); border-radius: 999px;
+    background: var(--white); color: var(--teal); font-weight: 600; text-decoration: none;
+  }
+  .activity-nav a:hover { background: var(--mist); }
+  .activity-nav a[aria-current="page"] { background: var(--teal); color: var(--white); }
+  .activity-nav .nav-label { margin: 0 0 .35rem; font-weight: 600; }
+
+  /* ----- Help ----- */
+  details.help { background: var(--white); border-left: 4px solid var(--teal); border-radius: 6px; padding: .5rem .9rem; margin-bottom: 1rem; }
+  details.help summary { cursor: pointer; font-weight: 600; color: var(--teal); }
+  details.help summary:focus-visible { outline: 3px solid var(--charcoal); outline-offset: 2px; }
+  details.help table { border-collapse: collapse; margin: .5rem 0; }
+  details.help th, details.help td { text-align: left; padding: .25rem .75rem .25rem 0; vertical-align: top; }
+  kbd { font: 600 .85em/1 ui-monospace, Consolas, monospace; background: var(--cloud); border: 1px solid var(--slate); border-radius: 4px; padding: .15em .4em; }
+
+  /* ----- Buttons ----- */
+  .btn {
+    font: inherit; font-size: .95rem; font-weight: 600;
+    padding: .45rem .85rem; border: 2px solid var(--teal); border-radius: 6px;
+    background: var(--white); color: var(--teal); cursor: pointer; line-height: 1.3;
+  }
+  .btn:hover { background: var(--mist); }
+  .btn.primary, .btn[aria-pressed="true"] { background: var(--teal); color: var(--white); }
+  .btn.primary:hover, .btn[aria-pressed="true"]:hover { background: #0e3d47; }
+  .btn:focus-visible, .answer-input:focus-visible {
+    outline: 3px solid var(--charcoal); outline-offset: 2px;
+  }
+  .bar { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+  .toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .75rem; margin-bottom: .5rem; }
+  .segmented { display: inline-flex; }
+  .segmented .btn:first-child { border-radius: 6px 0 0 6px; }
+  .segmented .btn:last-child { border-radius: 0 6px 6px 0; border-left-width: 0; }
+
+  .confirm { background: var(--white); border: 2px solid var(--teal); border-radius: 6px; padding: .6rem .9rem; margin: .5rem 0; }
+  .confirm p { margin: 0 0 .5rem; font-weight: 600; }
+
+  .meta-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem; margin: .25rem 0 .5rem; }
+  .progress { margin: 0; color: var(--slate); font-weight: 600; }
+  .status { margin: 0; min-height: 1.5em; font-weight: 600; }
+
+  /* ----- Results ----- */
+  .results { background: var(--white); border-left: 6px solid var(--teal); border-radius: 6px; padding: .5rem 1rem 1rem; margin: .75rem 0; }
+  .results h2 { margin-top: .5rem; }
+
+  .blank { letter-spacing: -1px; }
+
+  /* ----- List view ----- */
+  .intro { margin-top: 0; }
+  .card {
+    background: var(--white); border-left: 4px solid var(--slate); border-radius: 6px;
+    padding: .75rem 1rem; margin: 0 0 .75rem;
+  }
+  .card.is-correct { border-left-color: var(--teal); }
+  .card.has-error { border-left-color: var(--error); }
+  .card label { display: block; }
+  .card .cnum { display: block; font-weight: 700; color: var(--teal); }
+  .card .len { margin: .25rem 0; color: var(--slate); font-size: .95rem; }
+  .pattern { display: flex; flex-wrap: wrap; gap: 3px; margin: .4rem 0 .6rem; }
+  .pbox {
+    width: 1.75em; height: 1.75em; border: 1px solid var(--slate); background: var(--white);
+    display: grid; place-items: center; font-weight: 700; text-transform: uppercase; color: var(--letter);
+  }
+  .pbox.rev { color: var(--teal); }
+  .pbox.bad { color: var(--error); background: linear-gradient(to top right, transparent calc(50% - 1px), var(--error) calc(50% - 1px), var(--error) calc(50% + 1px), transparent calc(50% + 1px)), var(--white); }
+  .pgap { width: .9em; }
+  .answer-row { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+  .answer-input {
+    flex: 1 1 14rem; min-width: 0; font: inherit; font-size: 1.05rem; font-weight: 600; letter-spacing: .05em;
+    text-transform: uppercase; padding: .45rem .6rem; border: 2px solid var(--slate); border-radius: 6px;
+    background: var(--white); color: var(--charcoal);
+  }
+  .answer-input[aria-invalid="true"] { border-color: var(--error); }
+  .err { color: var(--error); font-weight: 600; margin: .4rem 0 0; }
+  .err:empty, .card-state:empty { display: none; }
+  .card-state { margin: .4rem 0 0; font-weight: 600; color: var(--teal); }
+
+  .jump { margin: .25rem 0 1rem; }
+  .jump a { margin-right: 1rem; }
+  h2.section { border-bottom: 2px solid var(--teal); padding-bottom: .25rem; }
+</style>
+</head>
+<body>
+<main id="app">
+  <h1>Exam 3 Practice: Clue by Clue</h1>
+  <p class="subtitle"><span id="subtitle"></span> &middot; <span id="clueCount"></span> clues</p>
+  <p class="newtab" id="newTab" hidden><a href="" target="_blank" rel="noopener">Open this activity in a new tab<span class="sr-only"> (opens in a new tab)</span></a> for a larger workspace.</p>
+  <nav class="activity-nav" aria-labelledby="navLabel">
+    <p class="nav-label" id="navLabel">Three ways to practice:</p>
+    <ul><li><a href="exam3-crossword.html">Crossword</a></li><li><a href="exam3-clues.html" aria-current="page">Clue by clue</a></li><li><a href="exam3-matching.html">Matching</a></li></ul>
+  </nav>
+
+  <details class="help">
+    <summary>How to use this activity</summary>
+    <p>This is the crossword in list form: each clue has its own answer box. Type an answer, then press <kbd>Enter</kbd> or move to the next box to save it.</p>
+    <p>The squares under each clue show letters you have already filled in from crossing answers, just like in a crossword grid. Screen readers read these letters as part of each answer box's description.</p>
+    <p><strong>Check</strong> tells you whether an answer is right and marks wrong letters with a slash. <strong>Reveal</strong> fills in the answer for you. Your answers are shared with the <a href="exam3-crossword.html">Crossword</a> and saved in this browser when possible.</p>
+  </details>
+
+  <div class="toolbar">
+    <nav class="jump" aria-label="Jump to clues"><a href="#hAcross">Across clues</a><a href="#hDown">Down clues</a></nav>
+    <div class="bar" role="group" aria-label="All answers">
+      <button type="button" class="btn" id="btnCheckAll">Check all</button>
+      <button type="button" class="btn" id="btnRevealAll">Reveal all</button>
+      <button type="button" class="btn" id="btnClearAll">Clear all</button>
+    </div>
+  </div>
+
+  <div class="confirm" id="confirm" role="group" aria-labelledby="confirmMsg" hidden>
+    <p id="confirmMsg"></p>
+    <div class="bar">
+      <button type="button" class="btn primary" id="confirmYes">Yes</button>
+      <button type="button" class="btn" id="confirmNo">Cancel</button>
+    </div>
+  </div>
+
+  <div class="meta-row">
+    <p class="status" id="status" role="status"></p>
+    <p class="progress" id="progress"></p>
+  </div>
+  <div class="sr-only" id="announcer" aria-live="polite"></div>
+
+  <section class="results" id="results" aria-labelledby="resultsHeading" hidden>
+    <h2 id="resultsHeading">All answers complete</h2>
+    <p id="resultsText"></p>
+    <ul id="resultsList"></ul>
+  </section>
+
+  <h2 class="section" id="hAcross" tabindex="-1">Across</h2>
+  <div id="cardsAcross"></div>
+  <h2 class="section" id="hDown" tabindex="-1">Down</h2>
+  <div id="cardsDown"></div>
+</main>
+<script src="exam3-data.js"></script>
+<script>
+(function () {
+  'use strict';
+  const $ = (s) => document.querySelector(s);
+  const PUZZLE = window.PRACTICE_SET;
+  if (!PUZZLE) { $('#status').textContent = 'The practice data file (exam3-data.js) could not be loaded.'; return; }
+  const COLS = PUZZLE.cols;
+  const DIR = { across: 'Across', down: 'Down' };
+
+  /* ---------- Build the model (same as the crossword, so crossing letters line up) ---------- */
+  const cellMap = new Map();
+  const entries = PUZZLE.entries.map((e) => {
+    const en = { num: e.num, dir: e.dir, clue: e.clue, answer: e.answer.toUpperCase(),
+      id: e.num + (e.dir === 'across' ? 'a' : 'd'), cells: [], verified: false };
+    const dr = e.dir === 'down' ? 1 : 0, dc = e.dir === 'across' ? 1 : 0;
+    for (let i = 0; i < en.answer.length; i++) {
+      const r = e.row - 1 + dr * i, c = e.col - 1 + dc * i, k = r * COLS + c, ch = en.answer[i];
+      let cell = cellMap.get(k);
+      if (!cell) { cell = { k, sol: ch, isSpace: ch === ' ', val: '', state: '', entries: {} }; cellMap.set(k, cell); }
+      cell.entries[e.dir] = en; en.cells.push(cell);
+    }
+    en.inputCells = en.cells.filter((x) => !x.isSpace);
+    en.wordLens = en.answer.split(' ').map((w) => w.length);
+    return en;
+  });
+  const byDir = (d) => entries.filter((e) => e.dir === d).sort((a, b) => a.num - b.num);
+  const across = byDir('across'), down = byDir('down');
+  const inputCells = [...cellMap.values()].filter((c) => !c.isSpace);
+  const stats = { checks: 0, completedAt: null, warnedFull: false };
+
+  /* ---------- Text helpers ---------- */
+  const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+  const clueHTML = (s) => esc(s).replace(/___/g, '<span class="blank" aria-hidden="true">________</span><span class="sr-only">blank</span>');
+  const lenText = (en) => en.inputCells.length + ' letters' +
+    (en.wordLens.length > 1 ? ', ' + en.wordLens.length + ' words (' + en.wordLens.join(', ') + ')' : '');
+  const name = (en) => en.num + ' ' + DIR[en.dir];
+  const plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
+  function setStatus(msg) { const s = $('#status'); s.textContent = ''; setTimeout(() => { s.textContent = msg; }, 50); }
+  function announce(msg) { const a = $('#announcer'); a.textContent = ''; setTimeout(() => { a.textContent = msg; }, 50); }
+
+  /* ---------- Persistence: same storage as the crossword page ---------- */
+  const KEY = 'practice:' + PUZZLE.id + ':answers'; // shared with exam3-crossword.html
+  function save() {
+    try {
+      const data = { cells: {}, ver: entries.filter((e) => e.verified).map((e) => e.id), checks: stats.checks, done: stats.completedAt };
+      inputCells.forEach((c) => { if (c.val || c.state) data.cells[c.k] = [c.val, c.state]; });
+      localStorage.setItem(KEY, JSON.stringify(data));
+    } catch (e) { /* storage unavailable */ }
+  }
+  function load() {
+    try {
+      const data = JSON.parse(localStorage.getItem(KEY) || 'null');
+      if (!data) return;
+      Object.keys(data.cells || {}).forEach((k) => {
+        const c = cellMap.get(+k); if (c && !c.isSpace) { c.val = data.cells[k][0] || ''; c.state = data.cells[k][1] || ''; }
+      });
+      (data.ver || []).forEach((id) => { const e = entries.find((x) => x.id === id); if (e) e.verified = true; });
+      stats.checks = data.checks || 0; stats.completedAt = data.done || null;
+    } catch (e) { /* ignore */ }
+  }
+
+  /* ---------- Cards ---------- */
+  function buildCards(list, holder) {
+    list.forEach((en) => {
+      const id = 'c-' + en.id;
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML =
+        '<label for="' + id + '-in"><span class="cnum">' + name(en) + '</span>' + clueHTML(en.clue) + '</label>' +
+        '<p class="len" id="' + id + '-len">' + lenText(en) + '</p>' +
+        '<div class="pattern" aria-hidden="true"></div>' +
+        '<p class="sr-only" id="' + id + '-pat"></p>' +
+        '<div class="answer-row">' +
+        '<input class="answer-input" id="' + id + '-in" type="text" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" aria-describedby="' + id + '-len ' + id + '-pat ' + id + '-err">' +
+        '<button type="button" class="btn" data-act="check">Check<span class="sr-only"> ' + name(en) + '</span></button>' +
+        '<button type="button" class="btn" data-act="reveal">Reveal<span class="sr-only"> ' + name(en) + '</span></button>' +
+        '</div>' +
+        '<p class="err" id="' + id + '-err"></p>' +
+        '<p class="card-state"></p>';
+      en.card = card;
+      en.cardInput = card.querySelector('input');
+      en.cardPattern = card.querySelector('.pattern');
+      en.cardPatSR = card.querySelector('#' + id + '-pat');
+      en.cardErr = card.querySelector('.err');
+      en.cardState = card.querySelector('.card-state');
+      en.cardInput.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); commitCard(en, true); } });
+      en.cardInput.addEventListener('change', () => commitCard(en, false));
+      card.querySelector('[data-act="check"]').addEventListener('click', () => { commitCard(en, false); checkWord(en); });
+      card.querySelector('[data-act="reveal"]').addEventListener('click', () => revealWord(en));
+      holder.appendChild(card);
+    });
+  }
+  buildCards(across, $('#cardsAcross'));
+  buildCards(down, $('#cardsDown'));
+  $('#clueCount').textContent = entries.length;
+  $('#subtitle').textContent = PUZZLE.subtitle || '';
+
+  function setVal(cell, v) {
+    cell.val = v;
+    if (cell.state === 'wrong') cell.state = '';
+    if (cell.state === 'revealed' && v !== cell.sol) cell.state = '';
+    Object.values(cell.entries).forEach((e) => { e.verified = false; });
+  }
+  function commitCard(en, viaEnter) {
+    const letters = en.cardInput.value.toUpperCase().replace(/[^A-Z]/g, '');
+    const current = en.inputCells.map((c) => c.val).join('');
+    if (!letters) { clearCardError(en); return; }
+    if (letters.length !== en.inputCells.length) {
+      const msg = name(en) + ' needs ' + en.inputCells.length + ' letters. You entered ' + letters.length + '.';
+      en.cardErr.textContent = msg;
+      en.cardInput.setAttribute('aria-invalid', 'true');
+      announce(msg);
+      return;
+    }
+    clearCardError(en);
+    if (letters === current) { if (viaEnter) announce(name(en) + ' saved.'); return; }
+    en.inputCells.forEach((c, i) => setVal(c, letters[i]));
+    stats.warnedFull = false;
+    afterChange();
+    announce(name(en) + ' saved.');
+  }
+  function clearCardError(en) { en.cardErr.textContent = ''; en.cardInput.removeAttribute('aria-invalid'); }
+
+  /* ---------- Check / reveal ---------- */
+  function checkEntry(en) {
+    let wrong = 0, empty = 0;
+    en.inputCells.forEach((c) => {
+      if (!c.val) empty++;
+      else if (c.val !== c.sol) { c.state = 'wrong'; wrong++; }
+    });
+    if (!wrong && !empty) en.verified = true;
+    return { wrong, empty };
+  }
+  function checkWord(en) {
+    stats.checks++;
+    const r = checkEntry(en);
+    let msg;
+    if (r.wrong) msg = name(en) + ': ' + plural(r.wrong, 'incorrect letter') + (r.empty ? ', ' + plural(r.empty, 'empty square') : '') + '.';
+    else if (r.empty) msg = name(en) + ': no errors so far. ' + plural(r.empty, 'square') + ' still empty.';
+    else msg = name(en) + ' is correct.';
+    setStatus(msg);
+    afterChange();
+  }
+  function checkAll() {
+    stats.checks++;
+    let correct = 0, errors = 0, partial = 0, blank = 0;
+    entries.forEach((en) => {
+      const filled = en.inputCells.filter((c) => c.val).length;
+      const r = checkEntry(en);
+      if (r.wrong) errors++; else if (!r.empty) correct++; else if (filled) partial++; else blank++;
+    });
+    let msg = correct + ' of ' + entries.length + ' answers correct.';
+    if (errors) msg += ' ' + plural(errors, 'answer') + ' with incorrect letters.';
+    if (partial) msg += ' ' + plural(partial, 'answer') + ' partly filled in with no errors.';
+    if (blank) msg += ' ' + plural(blank, 'answer') + ' not started.';
+    setStatus(msg);
+    afterChange();
+  }
+  function revealEntry(en) {
+    en.inputCells.forEach((c) => {
+      if (c.val !== c.sol) { c.val = c.sol; c.state = 'revealed'; } else if (c.state === 'wrong') c.state = '';
+    });
+    en.verified = true;
+    clearCardError(en);
+  }
+  function revealWord(en) {
+    revealEntry(en);
+    setStatus(name(en) + ' revealed: ' + en.answer + '.');
+    afterChange();
+  }
+
+  /* ---------- Inline confirmation ---------- */
+  let confirmAction = null, confirmReturn = null;
+  function askConfirm(msg, action, returnTo) {
+    confirmAction = action; confirmReturn = returnTo;
+    $('#confirmMsg').textContent = msg; $('#confirm').hidden = false; $('#confirmNo').focus();
+  }
+  function closeConfirm() { $('#confirm').hidden = true; if (confirmReturn) confirmReturn.focus(); confirmAction = null; }
+  $('#confirmYes').addEventListener('click', () => { const a = confirmAction; closeConfirm(); if (a) a(); });
+  $('#confirmNo').addEventListener('click', closeConfirm);
+  $('#confirm').addEventListener('keydown', (e) => { if (e.key === 'Escape') closeConfirm(); });
+  $('#btnCheckAll').addEventListener('click', checkAll);
+  $('#btnRevealAll').addEventListener('click', (e) => askConfirm('Reveal every answer?', () => {
+    entries.forEach(revealEntry); setStatus('All answers revealed.'); afterChange();
+  }, e.currentTarget));
+  $('#btnClearAll').addEventListener('click', (e) => askConfirm('Erase all of your answers and start over? This also clears the Crossword.', () => {
+    inputCells.forEach((c) => { c.val = ''; c.state = ''; });
+    entries.forEach((en) => { en.verified = false; en.cardInput.value = ''; clearCardError(en); });
+    stats.checks = 0; stats.completedAt = null; stats.warnedFull = false;
+    $('#results').hidden = true; setStatus('All answers cleared.'); afterChange();
+  }, e.currentTarget));
+
+  /* ---------- Refresh ---------- */
+  const wordRevealed = (en) => en.inputCells.some((c) => c.state === 'revealed');
+  function afterChange() { refreshCards(); refreshProgress(); checkCompletion(); save(); }
+  function refreshCards() {
+    entries.forEach((en) => {
+      let html = '';
+      en.cells.forEach((c) => {
+        if (c.isSpace) { html += '<span class="pgap"></span>'; return; }
+        html += '<span class="pbox' + (c.state === 'wrong' ? ' bad' : c.state === 'revealed' ? ' rev' : '') + '">' + esc(c.val) + '</span>';
+      });
+      en.cardPattern.innerHTML = html;
+      const known = [];
+      en.inputCells.forEach((c, i) => { if (c.val) known.push('square ' + (i + 1) + ' ' + c.val); });
+      en.cardPatSR.textContent = !known.length ? 'No letters filled in yet.'
+        : known.length === en.inputCells.length ? 'All squares filled.'
+        : 'Letters so far: ' + known.join(', ') + '.';
+      if (document.activeElement !== en.cardInput && !en.cardInput.hasAttribute('aria-invalid')) {
+        const full = en.inputCells.every((c) => c.val);
+        let v = '';
+        if (full) { let i = 0; en.cells.forEach((c) => { v += c.isSpace ? ' ' : en.inputCells[i++].val; }); }
+        en.cardInput.value = v;
+      }
+      const hasErr = en.inputCells.some((c) => c.state === 'wrong');
+      en.card.classList.toggle('is-correct', en.verified);
+      en.card.classList.toggle('has-error', hasErr && !en.verified);
+      en.cardState.textContent = en.verified ? (wordRevealed(en) ? '✓ Revealed' : '✓ Checked: correct')
+        : hasErr ? '✕ Some letters are incorrect' : '';
+      en.cardState.style.color = hasErr && !en.verified ? 'var(--error)' : '';
+    });
+  }
+  function refreshProgress() {
+    const filled = entries.filter((en) => en.inputCells.every((c) => c.val)).length;
+    $('#progress').textContent = filled + ' of ' + entries.length + ' answers filled in';
+  }
+  function checkCompletion() {
+    const allFilled = inputCells.every((c) => c.val);
+    const allRight = allFilled && inputCells.every((c) => c.val === c.sol);
+    if (allRight) {
+      if (!stats.completedAt) { stats.completedAt = new Date().toISOString(); showResults(true); } else showResults(false);
+    } else {
+      $('#results').hidden = true;
+      stats.completedAt = null;
+      if (allFilled && !stats.warnedFull) {
+        stats.warnedFull = true;
+        setStatus('Every answer is filled in, but some letters are not correct. Use Check all to find them.');
+      }
+    }
+  }
+  function showResults(fresh) {
+    const revealed = entries.filter(wordRevealed).length;
+    $('#resultsText').textContent = 'You completed all ' + entries.length + ' answers.';
+    $('#resultsList').innerHTML =
+      '<li>Answered without reveals: ' + (entries.length - revealed) + ' of ' + entries.length + '</li>' +
+      '<li>Answers with revealed letters: ' + revealed + '</li>' +
+      '<li>Checks used: ' + stats.checks + '</li>' +
+      '<li>Completed: ' + esc(new Date(stats.completedAt).toLocaleString()) + '</li>';
+    $('#results').hidden = false;
+    if (fresh) setStatus('All answers complete! ' + (entries.length - revealed) + ' of ' + entries.length + ' solved without reveals.');
+  }
+
+  /* ---------- Start ---------- */
+  try {
+    if (window.self !== window.top) { const nt = $('#newTab'); nt.querySelector('a').href = window.location.href; nt.hidden = false; }
+  } catch (e) { $('#newTab').hidden = false; }
+  load();
+  refreshCards(); refreshProgress();
+  if (stats.completedAt) showResults(false);
+})();
+</script>
+</body>
+</html>

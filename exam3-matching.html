@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exam 3 Practice: Matching</title>
+<style>
+  /* ===== Theme: five colors built from #134f5c, plus one feedback-only color =====
+     Deep Teal  #134f5c  headings, buttons, active square, links
+     Mist       #dce9ec  highlighted word, selected clue
+     Slate      #56636a  square borders, secondary text
+     Charcoal   #252c2f  body text, letters
+     Cloud      #f2f4f5  page background, panels
+     Brick      #a3392b  incorrect-answer feedback only (always paired with a slash or text)   */
+  :root {
+    --teal: #134f5c;
+    --mist: #dce9ec;
+    --slate: #56636a;
+    --charcoal: #252c2f;
+    --cloud: #f2f4f5;
+    --white: #ffffff;
+    --error: #a3392b;
+    --letter: #40494d; /* typed letters: a slightly lighter charcoal; revealed letters use Deep Teal */
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--cloud);
+    color: var(--charcoal);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  }
+  main { max-width: 1000px; margin: 0 auto; padding: 16px; }
+  h1 { color: var(--teal); font-size: 1.6rem; line-height: 1.25; margin: 0 0 .25rem; }
+  h2 { color: var(--teal); font-size: 1.25rem; margin: 1.25rem 0 .5rem; }
+  h3 { color: var(--teal); font-size: 1.1rem; margin: 1rem 0 .5rem; border-bottom: 2px solid var(--teal); padding-bottom: .25rem; }
+  .subtitle { margin: 0 0 .75rem; color: var(--slate); }
+  .newtab { margin: -.25rem 0 .75rem; }
+  a { color: var(--teal); font-weight: 600; text-underline-offset: 2px; }
+  a:focus-visible { outline: 3px solid var(--charcoal); outline-offset: 2px; }
+  .sr-only {
+    position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+
+  /* ----- Activity switcher ----- */
+  .activity-nav ul { list-style: none; margin: 0 0 1rem; padding: 0; display: flex; flex-wrap: wrap; gap: .5rem; }
+  .activity-nav a {
+    display: inline-block; padding: .4rem .9rem; border: 2px solid var(--teal); border-radius: 999px;
+    background: var(--white); color: var(--teal); font-weight: 600; text-decoration: none;
+  }
+  .activity-nav a:hover { background: var(--mist); }
+  .activity-nav a[aria-current="page"] { background: var(--teal); color: var(--white); }
+  .activity-nav .nav-label { margin: 0 0 .35rem; font-weight: 600; }
+
+  /* ----- Help ----- */
+  details.help { background: var(--white); border-left: 4px solid var(--teal); border-radius: 6px; padding: .5rem .9rem; margin-bottom: 1rem; }
+  details.help summary { cursor: pointer; font-weight: 600; color: var(--teal); }
+  details.help summary:focus-visible { outline: 3px solid var(--charcoal); outline-offset: 2px; }
+  details.help table { border-collapse: collapse; margin: .5rem 0; }
+  details.help th, details.help td { text-align: left; padding: .25rem .75rem .25rem 0; vertical-align: top; }
+  kbd { font: 600 .85em/1 ui-monospace, Consolas, monospace; background: var(--cloud); border: 1px solid var(--slate); border-radius: 4px; padding: .15em .4em; }
+
+  /* ----- Buttons ----- */
+  .btn {
+    font: inherit; font-size: .95rem; font-weight: 600;
+    padding: .45rem .85rem; border: 2px solid var(--teal); border-radius: 6px;
+    background: var(--white); color: var(--teal); cursor: pointer; line-height: 1.3;
+  }
+  .btn:hover { background: var(--mist); }
+  .btn.primary, .btn[aria-pressed="true"] { background: var(--teal); color: var(--white); }
+  .btn.primary:hover, .btn[aria-pressed="true"]:hover { background: #0e3d47; }
+  .btn:focus-visible, .answer-input:focus-visible {
+    outline: 3px solid var(--charcoal); outline-offset: 2px;
+  }
+  .bar { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+  .toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .75rem; margin-bottom: .5rem; }
+  .segmented { display: inline-flex; }
+  .segmented .btn:first-child { border-radius: 6px 0 0 6px; }
+  .segmented .btn:last-child { border-radius: 0 6px 6px 0; border-left-width: 0; }
+
+  .confirm { background: var(--white); border: 2px solid var(--teal); border-radius: 6px; padding: .6rem .9rem; margin: .5rem 0; }
+  .confirm p { margin: 0 0 .5rem; font-weight: 600; }
+
+  .meta-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem; margin: .25rem 0 .5rem; }
+  .progress { margin: 0; color: var(--slate); font-weight: 600; }
+  .status { margin: 0; min-height: 1.5em; font-weight: 600; }
+
+  /* ----- Results ----- */
+  .results { background: var(--white); border-left: 6px solid var(--teal); border-radius: 6px; padding: .5rem 1rem 1rem; margin: .75rem 0; }
+  .results h2 { margin-top: .5rem; }
+
+  .blank { letter-spacing: -1px; }
+
+  /* ----- List view ----- */
+  .intro { margin-top: 0; }
+  .card {
+    background: var(--white); border-left: 4px solid var(--slate); border-radius: 6px;
+    padding: .75rem 1rem; margin: 0 0 .75rem;
+  }
+  .card.is-correct { border-left-color: var(--teal); }
+  .card.has-error { border-left-color: var(--error); }
+  .card label { display: block; }
+  .card .cnum { display: block; font-weight: 700; color: var(--teal); }
+  .card .len { margin: .25rem 0; color: var(--slate); font-size: .95rem; }
+  .pattern { display: flex; flex-wrap: wrap; gap: 3px; margin: .4rem 0 .6rem; }
+  .pbox {
+    width: 1.75em; height: 1.75em; border: 1px solid var(--slate); background: var(--white);
+    display: grid; place-items: center; font-weight: 700; text-transform: uppercase; color: var(--letter);
+  }
+  .pbox.rev { color: var(--teal); }
+  .pbox.bad { color: var(--error); background: linear-gradient(to top right, transparent calc(50% - 1px), var(--error) calc(50% - 1px), var(--error) calc(50% + 1px), transparent calc(50% + 1px)), var(--white); }
+  .pgap { width: .9em; }
+  .answer-row { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+  .answer-input {
+    flex: 1 1 14rem; min-width: 0; font: inherit; font-size: 1.05rem; font-weight: 600; letter-spacing: .05em;
+    text-transform: uppercase; padding: .45rem .6rem; border: 2px solid var(--slate); border-radius: 6px;
+    background: var(--white); color: var(--charcoal);
+  }
+  .answer-input[aria-invalid="true"] { border-color: var(--error); }
+  .err { color: var(--error); font-weight: 600; margin: .4rem 0 0; }
+  .err:empty, .card-state:empty { display: none; }
+  .card-state { margin: .4rem 0 0; font-weight: 600; color: var(--teal); }
+
+  .jump { margin: .25rem 0 1rem; }
+  .jump a { margin-right: 1rem; }
+  h2.section { border-bottom: 2px solid var(--teal); padding-bottom: .25rem; }
+
+  /* ----- Matching ----- */
+  .mode { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; margin: 0 0 1rem; }
+  .mode .lbl { font-weight: 600; margin: 0; }
+  .round-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: .5rem; border-bottom: 2px solid var(--teal); margin: 1rem 0 .75rem; }
+  .round-head h2 { margin: 0 0 .25rem; }
+  .round-head h2:focus { outline: 3px solid var(--charcoal); outline-offset: 3px; }
+  .round-head p { margin: 0 0 .3rem; color: var(--slate); font-weight: 600; }
+  .bank { background: var(--white); border-radius: 6px; padding: .6rem 1rem .75rem; margin-bottom: 1rem; }
+  .bank h3 { border: 0; margin: 0 0 .4rem; padding: 0; font-size: 1rem; }
+  .bank ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .4rem; }
+  .bank li { border: 1px solid var(--slate); border-radius: 4px; padding: .2rem .55rem; background: var(--white); font-weight: 600; }
+  .bank li.used { background: var(--cloud); color: var(--slate); font-weight: 400; }
+  .bank li .tag { font-size: .85em; }
+  ol.match-list { list-style: none; margin: 0; padding: 0; }
+  .match { background: var(--white); border-left: 4px solid var(--slate); border-radius: 6px; padding: .75rem 1rem; margin: 0 0 .75rem; }
+  .match.ok, .match.shown { border-left-color: var(--teal); }
+  .match.bad { border-left-color: var(--error); }
+  .match label { display: block; margin-bottom: .5rem; }
+  .match .mnum { display: block; font-weight: 700; color: var(--teal); }
+  .match select {
+    font: inherit; font-size: 1rem; padding: .4rem .5rem; min-width: 14rem; max-width: 100%;
+    border: 2px solid var(--slate); border-radius: 6px; background: var(--white); color: var(--charcoal);
+  }
+  .match select:focus-visible { outline: 3px solid var(--charcoal); outline-offset: 2px; }
+  .match select[aria-invalid="true"] { border-color: var(--error); }
+  .fb { margin: .45rem 0 0; font-weight: 600; }
+  .fb:empty { display: none; }
+  .fb.ok, .fb.shown { color: var(--teal); }
+  .fb.bad { color: var(--error); }
+  .fb.none { color: var(--slate); }
+  .round-actions { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .75rem; margin: 1rem 0; }
+  .overview { margin-top: 1.5rem; }
+  .overview ol { margin: 0; padding: 0; list-style: none; display: grid; gap: .4rem; }
+  .overview button { width: 100%; text-align: left; display: flex; justify-content: space-between; gap: 1rem; }
+  .overview button[aria-current="true"] { background: var(--mist); }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+</style>
+</head>
+<body>
+<main id="app">
+  <h1>Exam 3 Practice: Matching</h1>
+  <p class="subtitle"><span id="subtitle"></span> &middot; <span id="clueCount"></span> terms in <span id="roundCount"></span> rounds</p>
+  <p class="newtab" id="newTab" hidden><a href="" target="_blank" rel="noopener">Open this activity in a new tab<span class="sr-only"> (opens in a new tab)</span></a> for a larger workspace.</p>
+  <nav class="activity-nav" aria-labelledby="navLabel">
+    <p class="nav-label" id="navLabel">Three ways to practice:</p>
+    <ul><li><a href="exam3-crossword.html">Crossword</a></li><li><a href="exam3-clues.html">Clue by clue</a></li><li><a href="exam3-matching.html" aria-current="page">Matching</a></li></ul>
+  </nav>
+
+  <details class="help">
+    <summary>How to use this activity</summary>
+    <p>Each round has 7 or 8 clues and the same number of terms. For each clue, choose the matching term from its menu. Each term is used once per round, and terms you have already chosen are marked &ldquo;used.&rdquo;</p>
+    <p><strong>Check answers</strong> marks each clue correct or not, so you can fix the ones you missed. <strong>Show answers</strong> fills in the rest of the round. Move between rounds with <strong>Previous round</strong> and <strong>Next round</strong>, or jump to any round from the list at the bottom.</p>
+    <p><strong>Mixed rounds</strong> shuffles all the terms into new groups; choose <strong>New mix</strong> for a different shuffle. <strong>By topic</strong> groups related terms together, which makes them harder to tell apart. Your progress is saved in this browser when possible.</p>
+  </details>
+
+  <div class="mode">
+    <p class="lbl" id="modeLabel">Practice mode:</p>
+    <div class="segmented" role="group" aria-labelledby="modeLabel">
+      <button type="button" class="btn" id="btnMix" aria-pressed="true">Mixed rounds</button>
+      <button type="button" class="btn" id="btnTopic" aria-pressed="false">By topic</button>
+    </div>
+    <button type="button" class="btn" id="btnNewMix">New mix</button>
+  </div>
+
+  <div class="confirm" id="confirm" role="group" aria-labelledby="confirmMsg" hidden>
+    <p id="confirmMsg"></p>
+    <div class="bar">
+      <button type="button" class="btn primary" id="confirmYes">Yes</button>
+      <button type="button" class="btn" id="confirmNo">Cancel</button>
+    </div>
+  </div>
+
+  <section class="results" id="results" aria-labelledby="resultsHeading" hidden>
+    <h2 id="resultsHeading">All rounds complete</h2>
+    <p id="resultsText"></p>
+    <ul id="resultsList"></ul>
+    <button type="button" class="btn primary" id="btnAgain">Practice again</button>
+  </section>
+
+  <div class="round-head">
+    <h2 id="roundHeading" tabindex="-1"></h2>
+    <p id="roundsDone"></p>
+  </div>
+
+  <section class="bank" aria-labelledby="bankHeading">
+    <h3 id="bankHeading">Terms for this round</h3>
+    <ul id="bank"></ul>
+  </section>
+
+  <ol class="match-list" id="items"></ol>
+
+  <p class="status" id="status" role="status"></p>
+
+  <div class="round-actions">
+    <div class="bar" role="group" aria-label="This round">
+      <button type="button" class="btn primary" id="btnCheck">Check answers</button>
+      <button type="button" class="btn" id="btnShow">Show answers</button>
+      <button type="button" class="btn" id="btnReset">Reset round</button>
+    </div>
+    <div class="bar" role="group" aria-label="Move between rounds">
+      <button type="button" class="btn" id="btnPrev">Previous round</button>
+      <button type="button" class="btn" id="btnNext">Next round</button>
+    </div>
+  </div>
+
+  <section class="overview" aria-labelledby="overviewHeading">
+    <h2 id="overviewHeading">All rounds</h2>
+    <ol id="overview"></ol>
+  </section>
+</main>
+
+<script src="exam3-data.js"></script>
+<script>
+(function () {
+  'use strict';
+  const $ = (s) => document.querySelector(s);
+  const SET = window.PRACTICE_SET;
+  if (!SET) { $('#status').textContent = 'The practice data file (exam3-data.js) could not be loaded.'; return; }
+
+  /* ---------- Items ---------- */
+  const DIR = { across: 'Across', down: 'Down' };
+  const termName = (a) => a.charAt(0) + a.slice(1).toLowerCase();
+  const items = SET.entries.map((e) => ({
+    id: e.num + (e.dir === 'across' ? 'a' : 'd'),
+    ref: e.num + ' ' + DIR[e.dir],
+    clue: e.clue,
+    term: termName(e.answer.toUpperCase()),
+    choice: '', status: ''
+  }));
+  const byId = new Map(items.map((it) => [it.id, it]));
+  const byRef = new Map(items.map((it) => [it.ref.toLowerCase(), it]));
+
+  const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+  const clueHTML = (s) => esc(s).replace(/___/g, '<span class="blank" aria-hidden="true">________</span><span class="sr-only">blank</span>');
+  const plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
+  function setStatus(msg) { const s = $('#status'); s.textContent = ''; setTimeout(() => { s.textContent = msg; }, 50); }
+
+  /* ---------- Rounds ---------- */
+  let state = { mode: 'mix', rounds: [], idx: 0, first: {} };
+
+  function shuffle(a) {
+    a = a.slice();
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+    return a;
+  }
+  function mixRounds() {
+    const ids = shuffle(items.map((it) => it.id));
+    const n = Math.ceil(ids.length / 8);
+    const rounds = [];
+    let start = 0;
+    for (let r = 0; r < n; r++) {
+      const size = Math.floor(ids.length / n) + (r < ids.length % n ? 1 : 0);
+      rounds.push({ title: '', ids: ids.slice(start, start + size) });
+      start += size;
+    }
+    return rounds;
+  }
+  function topicRounds() {
+    const used = new Set();
+    const rounds = (SET.topics || []).map((t) => {
+      const ids = [];
+      t.clues.forEach((ref) => {
+        const it = byRef.get(String(ref).toLowerCase().trim());
+        if (it && !used.has(it.id)) { ids.push(it.id); used.add(it.id); }
+        else if (!it) console.warn('Topic clue not found: ' + ref);
+      });
+      return { title: t.title, ids: shuffle(ids) };
+    }).filter((r) => r.ids.length);
+    const left = items.filter((it) => !used.has(it.id)).map((it) => it.id);
+    if (left.length) rounds.push({ title: 'More terms', ids: left });
+    return rounds;
+  }
+  function startMode(mode) {
+    state = { mode, rounds: mode === 'topic' ? topicRounds() : mixRounds(), idx: 0, first: {} };
+    items.forEach((it) => { it.choice = ''; it.status = ''; });
+    $('#results').hidden = true;
+    render(); save();
+  }
+  const cur = () => state.rounds[state.idx];
+  const roundItems = (r) => r.ids.map((id) => byId.get(id));
+  const roundDone = (r) => roundItems(r).every((it) => it.status === 'ok' || it.status === 'shown');
+  const anyProgress = () => items.some((it) => it.choice);
+
+  /* ---------- Persistence ---------- */
+  const KEY = 'practice:' + SET.id + ':matching';
+  function save() {
+    try {
+      const data = { mode: state.mode, rounds: state.rounds, idx: state.idx, first: state.first, items: {} };
+      items.forEach((it) => { if (it.choice || it.status) data.items[it.id] = [it.choice, it.status]; });
+      localStorage.setItem(KEY, JSON.stringify(data));
+    } catch (e) { /* storage unavailable */ }
+  }
+  function load() {
+    try {
+      const d = JSON.parse(localStorage.getItem(KEY) || 'null');
+      if (!d || !Array.isArray(d.rounds)) return false;
+      const all = d.rounds.flatMap((r) => r.ids);
+      if (all.length !== items.length || !all.every((id) => byId.has(id))) return false; // data file changed
+      state = { mode: d.mode === 'topic' ? 'topic' : 'mix', rounds: d.rounds, idx: Math.min(d.idx || 0, d.rounds.length - 1), first: d.first || {} };
+      Object.keys(d.items || {}).forEach((id) => { const it = byId.get(id); if (it) { it.choice = d.items[id][0] || ''; it.status = d.items[id][1] || ''; } });
+      return true;
+    } catch (e) { return false; }
+  }
+
+  /* ---------- Render ---------- */
+  function roundTitle(r, i) {
+    return 'Round ' + (i + 1) + ' of ' + state.rounds.length + (r.title ? ': ' + r.title : '');
+  }
+  function render() {
+    const r = cur(), list = roundItems(r);
+    const terms = list.map((it) => it.term).sort((a, b) => a.localeCompare(b));
+    $('#btnMix').setAttribute('aria-pressed', String(state.mode === 'mix'));
+    $('#btnTopic').setAttribute('aria-pressed', String(state.mode === 'topic'));
+    $('#btnNewMix').hidden = state.mode !== 'mix';
+    $('#roundHeading').textContent = roundTitle(r, state.idx);
+    $('#roundCount').textContent = state.rounds.length;
+
+    const ol = $('#items');
+    ol.innerHTML = '';
+    list.forEach((it, i) => {
+      const li = document.createElement('li');
+      li.className = 'match';
+      const sid = 'sel-' + it.id, fid = 'fb-' + it.id;
+      li.innerHTML = '<label for="' + sid + '"><span class="mnum">Clue ' + (i + 1) + '</span>' + clueHTML(it.clue) + '</label>' +
+        '<select id="' + sid + '" aria-describedby="' + fid + '"></select>' +
+        '<p class="fb" id="' + fid + '"></p>';
+      const sel = li.querySelector('select');
+      sel.appendChild(new Option('Choose a term…', ''));
+      terms.forEach((t) => sel.appendChild(new Option(t, t)));
+      sel.value = it.choice;
+      sel.addEventListener('change', () => {
+        it.choice = sel.value; it.status = '';
+        paintItem(it); refreshUsed(); refreshOverview(); save();
+      });
+      it.li = li; it.sel = sel; it.fb = li.querySelector('.fb');
+      ol.appendChild(li);
+      paintItem(it);
+    });
+    refreshUsed();
+    $('#btnPrev').disabled = state.idx === 0;
+    $('#btnNext').disabled = state.idx === state.rounds.length - 1;
+    refreshOverview();
+    $('#status').textContent = '';
+  }
+  function paintItem(it) {
+    const s = it.status;
+    it.li.classList.toggle('ok', s === 'ok');
+    it.li.classList.toggle('bad', s === 'bad');
+    it.li.classList.toggle('shown', s === 'shown');
+    it.fb.className = 'fb' + (s ? ' ' + s : '');
+    it.fb.textContent = s === 'ok' ? '✓ Correct'
+      : s === 'bad' ? '✕ Not quite. Try another term.'
+      : s === 'none' ? 'No term chosen yet.'
+      : s === 'shown' ? 'Answer shown: ' + it.term : '';
+    if (s === 'bad') it.sel.setAttribute('aria-invalid', 'true'); else it.sel.removeAttribute('aria-invalid');
+  }
+  function refreshUsed() {
+    const list = roundItems(cur());
+    const chosen = new Map();
+    list.forEach((it) => { if (it.choice) chosen.set(it.choice, (chosen.get(it.choice) || 0) + 1); });
+    // menus: mark terms chosen for a different clue
+    list.forEach((it) => {
+      [...it.sel.options].forEach((o) => {
+        if (!o.value) return;
+        const n = chosen.get(o.value) || 0;
+        const elsewhere = n - (it.choice === o.value ? 1 : 0);
+        o.textContent = o.value + (elsewhere > 0 && it.choice !== o.value ? ' (used)' : '');
+      });
+    });
+    // term bank
+    const terms = list.map((it) => it.term).sort((a, b) => a.localeCompare(b));
+    $('#bank').innerHTML = terms.map((t) => chosen.has(t)
+      ? '<li class="used">' + esc(t) + ' <span class="tag">(used)</span></li>'
+      : '<li>' + esc(t) + '</li>').join('');
+  }
+  function refreshOverview() {
+    const ol = $('#overview');
+    ol.innerHTML = '';
+    let done = 0;
+    state.rounds.forEach((r, i) => {
+      const list = roundItems(r);
+      const ok = list.filter((it) => it.status === 'ok' || it.status === 'shown').length;
+      const answered = list.filter((it) => it.choice).length;
+      const complete = roundDone(r); if (complete) done++;
+      const li = document.createElement('li');
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'btn';
+      b.setAttribute('aria-current', i === state.idx ? 'true' : 'false');
+      b.innerHTML = '<span>' + esc(roundTitle(r, i)) + '</span><span>' +
+        (complete ? '✓ Complete' : answered ? answered + ' of ' + list.length + ' answered' : 'Not started') + '</span>';
+      b.addEventListener('click', () => goTo(i));
+      li.appendChild(b); ol.appendChild(li);
+    });
+    $('#roundsDone').textContent = 'Rounds complete: ' + done + ' of ' + state.rounds.length;
+  }
+  function goTo(i) {
+    state.idx = i; render(); save();
+    const h = $('#roundHeading'); h.focus(); h.scrollIntoView({ block: 'start' });
+  }
+
+  /* ---------- Actions ---------- */
+  function check() {
+    const list = roundItems(cur());
+    let ok = 0, bad = 0, none = 0;
+    list.forEach((it) => {
+      if (it.status === 'shown') { ok++; return; }
+      if (!it.choice) { it.status = 'none'; none++; }
+      else if (it.choice === it.term) { it.status = 'ok'; ok++; }
+      else { it.status = 'bad'; bad++; }
+      paintItem(it);
+    });
+    if (state.first[state.idx] === undefined) state.first[state.idx] = list.filter((it) => it.status === 'ok').length;
+    let msg;
+    if (ok === list.length) {
+      msg = 'Round ' + (state.idx + 1) + ' complete! All ' + list.length + ' correct.' +
+        (state.idx < state.rounds.length - 1 ? ' Select Next round to continue.' : '');
+    } else {
+      msg = ok + ' of ' + list.length + ' correct.';
+      if (bad) msg += ' ' + plural(bad, 'clue') + ' to try again.';
+      if (none) msg += ' ' + plural(none, 'clue') + ' without a term.';
+    }
+    setStatus(msg);
+    refreshOverview(); checkAllDone(); save();
+  }
+  function showAnswers() {
+    roundItems(cur()).forEach((it) => {
+      if (it.status !== 'ok') { it.choice = it.term; it.sel.value = it.term; it.status = 'shown'; }
+      paintItem(it);
+    });
+    if (state.first[state.idx] === undefined) state.first[state.idx] = 0;
+    refreshUsed(); refreshOverview();
+    setStatus('Answers shown for round ' + (state.idx + 1) + '.');
+    checkAllDone(); save();
+  }
+  function resetRound() {
+    roundItems(cur()).forEach((it) => { it.choice = ''; it.status = ''; it.sel.value = ''; paintItem(it); });
+    delete state.first[state.idx];
+    refreshUsed(); refreshOverview();
+    $('#results').hidden = true;
+    setStatus('Round ' + (state.idx + 1) + ' reset.');
+    save();
+  }
+  function checkAllDone(fromLoad) {
+    const done = state.rounds.every(roundDone);
+    if (!done) { $('#results').hidden = true; return; }
+    const total = items.length;
+    const firstOk = state.rounds.reduce((s, r, i) => s + (state.first[i] || 0), 0);
+    const shown = items.filter((it) => it.status === 'shown').length;
+    $('#resultsText').textContent = 'You matched all ' + total + ' terms.';
+    $('#resultsList').innerHTML =
+      '<li>Correct on your first check: ' + firstOk + ' of ' + total + '</li>' +
+      '<li>Answers shown: ' + shown + '</li>' +
+      '<li>Mode: ' + (state.mode === 'topic' ? 'By topic' : 'Mixed rounds') + '</li>';
+    $('#results').hidden = false;
+    if (!fromLoad) setStatus('All rounds complete! Correct on first check: ' + firstOk + ' of ' + total + '.');
+  }
+
+  /* ---------- Inline confirmation ---------- */
+  let confirmAction = null, confirmReturn = null;
+  function askConfirm(msg, action, returnTo) {
+    confirmAction = action; confirmReturn = returnTo;
+    $('#confirmMsg').textContent = msg; $('#confirm').hidden = false; $('#confirmNo').focus();
+  }
+  function closeConfirm() { $('#confirm').hidden = true; if (confirmReturn) confirmReturn.focus(); confirmAction = null; }
+  $('#confirmYes').addEventListener('click', () => { const a = confirmAction; closeConfirm(); if (a) a(); });
+  $('#confirmNo').addEventListener('click', closeConfirm);
+  $('#confirm').addEventListener('keydown', (e) => { if (e.key === 'Escape') closeConfirm(); });
+  function changeMode(mode, btn) {
+    const go = () => { startMode(mode); setStatus((mode === 'topic' ? 'By topic' : 'Mixed rounds') + ': round 1 of ' + state.rounds.length + '.'); };
+    if (anyProgress()) askConfirm('Start over in this mode? Your current answers will be cleared.', go, btn); else go();
+  }
+
+  $('#btnMix').addEventListener('click', (e) => { if (state.mode !== 'mix') changeMode('mix', e.currentTarget); });
+  $('#btnTopic').addEventListener('click', (e) => { if (state.mode !== 'topic') changeMode('topic', e.currentTarget); });
+  $('#btnNewMix').addEventListener('click', (e) => changeMode('mix', e.currentTarget));
+  $('#btnAgain').addEventListener('click', () => { startMode(state.mode); goTo(0); setStatus('New practice started.'); });
+  $('#btnCheck').addEventListener('click', check);
+  $('#btnShow').addEventListener('click', showAnswers);
+  $('#btnReset').addEventListener('click', resetRound);
+  $('#btnPrev').addEventListener('click', () => { if (state.idx > 0) goTo(state.idx - 1); });
+  $('#btnNext').addEventListener('click', () => { if (state.idx < state.rounds.length - 1) goTo(state.idx + 1); });
+
+  /* ---------- Start ---------- */
+  try {
+    if (window.self !== window.top) { const nt = $('#newTab'); nt.querySelector('a').href = window.location.href; nt.hidden = false; }
+  } catch (e) { $('#newTab').hidden = false; }
+  $('#subtitle').textContent = SET.subtitle || '';
+  $('#clueCount').textContent = items.length;
+  if (load()) { render(); checkAllDone(true); } else startMode('mix');
+})();
+</script>
+</body>
+</html>
